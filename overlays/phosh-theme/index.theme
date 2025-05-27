@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=X-GNOME-Metatheme
+Name=Nethunter
+Comment=Kali Nethunter Pro Theme for Phosh
+Encoding=UTF-8
+
+[X-GNOME-Metatheme]
+GtkTheme=Nethunter
+MetacityTheme=Nethunter
+IconTheme=Adwaita
+CursorTheme=Adwaita
+CursorSize=24

@@ -1,0 +1,44 @@
+#!/bin/bash
+set -e
+
+echo "Nethunter-Halium Update Tool"
+echo "============================"
+
+# Update host system
+echo "[+] Updating host system packages..."
+apt update
+apt upgrade -y
+
+# Update LXC container
+echo "[+] Updating Kali Nethunter container..."
+if ! lxc-info -n kali-nethunter | grep -q "RUNNING"; then
+  echo "[+] Starting Kali Nethunter container..."
+  lxc-start -n kali-nethunter
+  # Wait for container to be fully up
+  sleep 2
+fi
+
+# Update container packages
+echo "[+] Updating container packages..."
+lxc-attach -n kali-nethunter -- apt update
+lxc-attach -n kali-nethunter -- apt upgrade -y
+
+# Update Nethunter specific tools
+echo "[+] Updating Nethunter tools..."
+if [ -d "/opt/nethunter/update-scripts" ]; then
+  for script in /opt/nethunter/update-scripts/*; do
+    if [ -x "$script" ]; then
+      echo "[+] Running update script: $(basename $script)"
+      $script
+    fi
+  done
+fi
+
+# Check for theme updates
+if [ -d "/usr/share/themes/nethunter" ]; then
+  echo "[+] Applying any theme updates..."
+  gsettings set org.gnome.desktop.interface gtk-theme 'nethunter'
+  gsettings set org.gnome.desktop.wm.preferences theme 'nethunter'
+fi
+
+echo "[+] Update completed successfully!"

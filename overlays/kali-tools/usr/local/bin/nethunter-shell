@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# Ensure LXC container is running
+if ! lxc-info -n kali-nethunter | grep -q "RUNNING"; then
+  echo "Starting Kali Nethunter container..."
+  lxc-start -n kali-nethunter
+  # Wait for container to be fully up
+  sleep 2
+fi
+
+# Attach to the container
+echo "Launching Nethunter shell..."
+lxc-attach -n kali-nethunter -- /bin/bash

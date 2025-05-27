@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Nethunter Shell
+Comment=Launch Kali Nethunter Shell
+Exec=/usr/local/bin/nethunter-shell
+Icon=/opt/nethunter/icons/kali-menu.png
+Terminal=true
+Type=Application
+Categories=Kali;Penetration Testing;

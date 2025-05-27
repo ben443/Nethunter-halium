@@ -1,0 +1,139 @@
+/* Nethunter Pro GNOME Shell Theme for Phosh */
+
+/* Colors */
+@define-color nethunter_black #121212;
+@define-color nethunter_red #ff0000;
+@define-color nethunter_accent #ff5252;
+@define-color nethunter_text #ffffff;
+@define-color nethunter_bg_dark #1a1a1a;
+@define-color nethunter_bg_light #2a2a2a;
+
+/* Global */
+stage {
+  font-family: "Roboto", Sans-Serif;
+  color: @nethunter_text;
+}
+
+/* Top Panel */
+#panel {
+  background-color: @nethunter_black;
+  border-bottom: 1px solid @nethunter_red;
+  height: 32px;
+}
+
+#panel .panel-button {
+  color: @nethunter_text;
+  -natural-hpadding: 12px;
+  -minimum-hpadding: 6px;
+}
+
+#panel .panel-button:hover {
+  background-color: alpha(@nethunter_red, 0.3);
+}
+
+#panel .panel-button:active,
+#panel .panel-button:overview,
+#panel .panel-button:focus,
+#panel .panel-button:checked {
+  background-color: alpha(@nethunter_red, 0.7);
+}
+
+/* Overview */
+#overview {
+  background-color: @nethunter_black;
+}
+
+/* Search */
+#searchEntry {
+  background-color: @nethunter_bg_dark;
+  color: @nethunter_text;
+  border: 1px solid @nethunter_bg_light;
+  border-radius: 4px;
+  padding: 8px;
+}
+
+#searchEntry:focus {
+  border-color: @nethunter_red;
+}
+
+/* App Grid */
+.app-view-control {
+  background-color: @nethunter_bg_dark;
+  color: @nethunter_text;
+}
+
+.app-well-app:hover .app-well-app-running-dot {
+  background-color: @nethunter_red;
+}
+
+.app-well-app-running-dot {
+  width: 4px;
+  height: 4px;
+  background-color: @nethunter_red;
+}
+
+.app-well-app:focus .app-well-app-running-dot {
+  background-color: @nethunter_text;
+}
+
+/* Dash */
+#dash {
+  background-color: @nethunter_bg_dark;
+  border: 1px solid @nethunter_bg_light;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.dash-item-container .app-well-app:hover,
+.dash-item-container .app-well-app:focus {
+  background-color: alpha(@nethunter_red, 0.3);
+}
+
+/* Notifications */
+.notification-banner {
+  background-color: @nethunter_bg_dark;
+  border: 1px solid @nethunter_bg_light;
+  border-radius: 8px;
+  color: @nethunter_text;
+}
+
+.notification-banner:hover {
+  background-color: @nethunter_bg_light;
+}
+
+/* Quick Settings */
+.quick-settings {
+  background-color: @nethunter_bg_dark;
+  border: 1px solid @nethunter_bg_light;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.quick-toggle {
+  background-color: @nethunter_bg_light;
+  border-radius: 8px;
+}
+
+.quick-toggle:hover {
+  background-color: alpha(@nethunter_red, 0.3);
+}
+
+.quick-toggle:active {
+  background-color: alpha(@nethunter_red, 0.7);
+}
+
+/* Phosh Specific */
+.phosh-lockscreen {
+  background-color: @nethunter_black;
+}
+
+.phosh-lockscreen-clock {
+  color: @nethunter_text;
+  font-size: 42pt;
+  font-weight: bold;
+}
+
+.phosh-lockscreen-date {
+  color: @nethunter_text;
+  font-size: 14pt;
+}
