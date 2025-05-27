@@ -7,12 +7,12 @@ echo "Setting up build environment for Nethunter-Halium..."
 if [ -f /etc/debian_version ]; then
   sudo apt update
   sudo apt install -y git make curl wget gdisk parted \
-    android-tools-adb android-tools-fastboot \
+    adb fastboot android-sdk-libsparse-utils \
     docker.io docker-compose python3 python3-pip \
     qemu-user-static debootstrap schroot lxc lxd \
     build-essential devscripts crossbuild-essential-arm64 \
-    android-sdk-platform-tools-common img2simg simg2img \
-    repo python3-pycryptodome sparse-tools gzip lz4
+    android-sdk-platform-tools-common  \
+    repo python3-pycryptodome gzip lz4
 elif [ -f /etc/arch-release ]; then
   sudo pacman -Syu --needed git make curl wget gdisk parted \
     android-tools docker docker-compose python python-pip \
