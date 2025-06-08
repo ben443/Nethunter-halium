@@ -16,9 +16,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Docker
+         - name: Set up Docker
         run: |
           sudo apt-get update
+          # Remove potential conflicting package before installing docker.io
+          sudo apt-get remove -y containerd || true
           sudo apt-get install -y docker.io
           sudo systemctl start docker
           sudo usermod -aG docker $USER
@@ -28,7 +30,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y git make curl wget gdisk parted \
             adb fastboot android-sdk-libsparse-utils \
-            docker-compose python3 python3-pip \
+            python3 python3-pip \
             qemu-user-static debootstrap schroot lxc lxd \
             build-essential devscripts crossbuild-essential-arm64 \
             android-sdk-platform-tools-common repo python3-pycryptodome gzip lz4 locales
