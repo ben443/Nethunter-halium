@@ -2,6 +2,7 @@ name: Build GKI & Generic 32 Images
 
 on:
   workflow_dispatch:
+ 
     inputs:
       build_target:
         description: 'Build target: gki-5.10 or generic-32'
