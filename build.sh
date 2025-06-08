@@ -20,10 +20,10 @@ LOGS_DIR="$BUILD_DIR/logs"
 mkdir -p "$LOGS_DIR"
 
 # --- Default Variables ---
-DEVICE=""
+DEVICE="gts8"
 BUILD_TYPE="device"
-API_LEVEL=""
-GKI_VERSION=""
+API_LEVEL="32"
+GKI_VERSION="4"
 SKIP_LXC=false
 HALIUM_ONLY=false
 ROOTFS_ONLY=false
