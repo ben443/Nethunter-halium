@@ -19,5 +19,6 @@ jobs:
 
       - name: Build project
         run: |
-          # Replace this with your actual build commands
+          ./build.sh gts8 generic-api32
+
           echo "Running build for Nethunter-halium"
