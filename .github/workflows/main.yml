@@ -1,0 +1,23 @@
+name: Build Nethunter-halium
+
+on:
+  workflow_dispatch: # Allows manual trigger from the Actions tab
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Add your project-specific build steps here
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential
+
+      - name: Build project
+        run: |
+          # Replace this with your actual build commands
+          echo "Running build for Nethunter-halium"
