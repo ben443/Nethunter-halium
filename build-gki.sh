@@ -21,6 +21,7 @@ ARCH="arm64"          # Default to arm64 architecture
 WITH_NETHUNTER=true   # Include Nethunter by default
 CLEAN_BUILD=false     # Don't clean by default
 VERBOSE=false         # Don't use verbose output by default
+JOBS=$(nproc)         # Allow overriding with --jobs
 
 # Create necessary directories
 mkdir -p "$BUILD_DIR" "$OUT_DIR" "$LOGS_DIR" "$TEMP_DIR"
@@ -40,6 +41,7 @@ print_usage() {
   echo "  --no-nethunter           Build without Nethunter customizations"
   echo "  --clean                  Clean build directory before starting"
   echo "  --verbose                Enable verbose output"
+  echo "  --jobs <num>             Number of threads to use for kernel build"
   echo "  --help                   Show this help message"
   echo ""
   echo "Examples:"
@@ -99,6 +101,10 @@ while [[ $# -gt 0 ]]; do
       VERBOSE=true
       shift
       ;;
+    --jobs)
+      JOBS="$2"
+      shift 2
+      ;;
     --help)
       print_usage
       ;;
@@ -124,28 +130,35 @@ echo "GSI Variant: $GSI_VARIANT"
 echo "Include Nethunter: $WITH_NETHUNTER"
 echo "Clean Build: $CLEAN_BUILD"
 echo "Log file: $LOG_FILE"
+echo "Jobs: $JOBS"
 echo "=========================================="
 
-# Check if necessary tools are available
+# Function to check and install dependencies
 check_dependencies() {
   echo "Checking dependencies..."
-  
-  # Check for essential tools
-  for cmd in git python3 repo make gcc; do
+  local deps=(git python3 repo make gcc bc bison flex openssl libssl-dev)
+  local missing=()
+  for cmd in "${deps[@]}"; do
     if ! command -v $cmd &> /dev/null; then
-      echo "Error: $cmd is required but not installed. Please install it and try again."
-      exit 1
+      missing+=("$cmd")
     fi
   done
-  
-  # Create tools directory if it doesn't exist
+  if [ ${#missing[@]} -ne 0 ]; then
+    echo "Error: Missing dependencies: ${missing[*]}"
+    echo "Please install them using your package manager (e.g., sudo apt-get install ${missing[*]})"
+    exit 1
+  fi
+
   mkdir -p "$TOOLS_DIR"
-  
+
   # Check for GKI kernel source
   if [ ! -d "$KERNEL_SRC_DIR" ]; then
     echo "GKI kernel source not found. Cloning repository..."
     mkdir -p "$KERNEL_SRC_DIR"
-    git clone https://android.googlesource.com/kernel/common -b android12-5.10 "$KERNEL_SRC_DIR"
+    if ! git clone https://android.googlesource.com/kernel/common -b android12-5.10 "$KERNEL_SRC_DIR"; then
+      echo "Error: Failed to clone the kernel source. Exiting."
+      exit 1
+    fi
   fi
 }
 
@@ -155,16 +168,17 @@ clean_build() {
     echo "Cleaning build directories..."
     rm -rf "$TEMP_DIR/gki-$GKI_VERSION-$ANDROID_API"
     mkdir -p "$TEMP_DIR/gki-$GKI_VERSION-$ANDROID_API"
+  else
+    mkdir -p "$TEMP_DIR/gki-$GKI_VERSION-$ANDROID_API"
   fi
 }
 
 # Build the GKI kernel
 build_kernel() {
   echo "Building GKI kernel version $GKI_VERSION for Android API $ANDROID_API..."
-  
+
   cd "$KERNEL_SRC_DIR"
-  
-  # Set kernel configuration
+
   if [ "$ARCH" = "arm64" ]; then
     KERNEL_CONFIG="gki_defconfig"
     CROSS_COMPILE="aarch64-linux-gnu-"
@@ -172,74 +186,57 @@ build_kernel() {
     KERNEL_CONFIG="gki_defconfig"
     CROSS_COMPILE="arm-linux-gnueabi-"
   fi
-  
-  # Add Halium-specific configurations if needed
+
   if [ "$GSI_VARIANT" = "halium" ]; then
     echo "Applying Halium-specific kernel configurations..."
-    # This would normally involve applying Halium-specific patches
-    # For demonstration, we're skipping this step
+    # Placeholder: apply Halium-specific patches here if available
   fi
-  
-  # Build the kernel
+
   echo "Configuring kernel..."
-  make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" "$KERNEL_CONFIG"
-  
-  echo "Building kernel..."
-  make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" -j$(nproc)
-  
-  # Check if build was successful
-  if [ $? -ne 0 ]; then
+  if ! make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" "$KERNEL_CONFIG"; then
+    echo "Error: Kernel configuration failed."
+    exit 1
+  fi
+
+  echo "Building kernel with $JOBS jobs..."
+  if ! make ARCH="$ARCH" CROSS_COMPILE="$CROSS_COMPILE" -j"$JOBS"; then
     echo "Error: Kernel build failed. Check the log for details: $LOG_FILE"
     exit 1
   fi
-  
+
   # Copy kernel to output directory
   echo "Copying kernel to build directory..."
   mkdir -p "$TEMP_DIR/gki-$GKI_VERSION-$ANDROID_API/kernel"
-  cp arch/"$ARCH"/boot/Image "$TEMP_DIR/gki-$GKI_VERSION-$ANDROID_API/kernel/"
-  
+  cp arch/"$ARCH"/boot/Image "$TEMP_DIR/gki-$GKI_VERSION-$ANDROID_API/kernel/" || {
+    echo "Error: Failed to copy kernel image."
+    exit 1
+  }
+
   # Copy kernel modules
   echo "Copying kernel modules..."
   mkdir -p "$TEMP_DIR/gki-$GKI_VERSION-$ANDROID_API/modules"
   find . -name "*.ko" -exec cp {} "$TEMP_DIR/gki-$GKI_VERSION-$ANDROID_API/modules/" \;
 }
 
-# Build the GKI-based system image
+# Build the GKI-based system image (placeholder)
 build_system_image() {
   echo "Building GKI-based system image..."
-  
-  # In a real implementation, this would:
-  # 1. Use AOSP build system to create a system image
-  # 2. Incorporate the built GKI kernel
-  # 3. Apply necessary modifications for Halium
-  
-  # For demonstration, we'll create a placeholder system image
+
+  # Placeholder: in a real implementation, integrate with AOSP build system
   echo "Creating placeholder system image..."
-  
-  # Create a basic system directory structure
-  mkdir -p "$TEMP_DIR/gki-$GKI_VERSION-$ANDROID_API/system"
+
   mkdir -p "$TEMP_DIR/gki-$GKI_VERSION-$ANDROID_API/system/bin"
   mkdir -p "$TEMP_DIR/gki-$GKI_VERSION-$ANDROID_API/system/etc"
   mkdir -p "$TEMP_DIR/gki-$GKI_VERSION-$ANDROID_API/system/lib"
-  
-  # Create a system image file (this is a placeholder)
+
   dd if=/dev/zero of="$TEMP_DIR/gki-$GKI_VERSION-$ANDROID_API/system.img" bs=1M count=100
-  
-  # In a real implementation, you would create a proper ext4 image with the system contents
 }
 
-# Apply Nethunter customizations
+# Apply Nethunter customizations (placeholder)
 apply_nethunter() {
   if [ "$WITH_NETHUNTER" = true ]; then
     echo "Applying Nethunter customizations to GKI system image..."
-    
-    # This would normally involve:
-    # 1. Mounting the system image
-    # 2. Applying overlays and customizations
-    # 3. Adding Nethunter-specific files
-    # 4. Repackaging the system image
-    
-    # For demonstration, we'll just create a placeholder
+    # Placeholder for real Nethunter integration steps
     echo "Note: In a real implementation, this would customize the system image with Nethunter components."
   fi
 }
@@ -247,22 +244,14 @@ apply_nethunter() {
 # Create the final image
 create_final_image() {
   echo "Creating final GKI-based system image..."
-  
+
   OUTPUT_NAME="nethunter-halium-gki-$GKI_VERSION-$ANDROID_API-$ARCH"
   if [ "$GSI_VARIANT" != "halium" ]; then
     OUTPUT_NAME="$OUTPUT_NAME-$GSI_VARIANT"
   fi
-  
-  # In a real implementation, this would combine:
-  # 1. The system image
-  # 2. The GKI kernel
-  # 3. A vendor-specific ramdisk
-  # 4. Boot image creation
-  
-  # For demonstration, we'll just copy our placeholder
+
   cp "$TEMP_DIR/gki-$GKI_VERSION-$ANDROID_API/system.img" "$OUT_DIR/$OUTPUT_NAME.img"
-  
-  # Create build info file
+
   cat > "$OUT_DIR/$OUTPUT_NAME.info" << EOF
 Nethunter-Halium GKI Build Information
 ======================================
@@ -288,5 +277,4 @@ echo "Output: $OUT_DIR/nethunter-halium-gki-$GKI_VERSION-$ANDROID_API-$ARCH.img"
 echo "Build log: $LOG_FILE"
 echo "====================================="
 
-# Return to original directory
 cd "$SCRIPT_DIR"
