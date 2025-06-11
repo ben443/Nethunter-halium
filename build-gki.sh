@@ -31,7 +31,7 @@ LOG_FILE="$LOGS_DIR/build-gki-$(date +%Y%m%d-%H%M%S).log"
 
 # Function to print usage
 print_usage() {
-  echo "Usage: $0 [options]"
+  echo "Usage: build-gki.sh [options]"
   echo ""
   echo "Options:"
   echo "  --gki-version <version>  GKI kernel version (5.10 supported)"
@@ -45,8 +45,8 @@ print_usage() {
   echo "  --help                   Show this help message"
   echo ""
   echo "Examples:"
-  echo "  $0 --gki-version 5.10 --android-api 32           # Build Android 12 GKI 5.10 Halium image"
-  echo "  $0 --gki-version 5.10 --gsi-variant vanilla      # Build vanilla GKI 5.10 image"
+  echo "  ./build-gki.sh --gki-version 5.10 --android-api 32           # Build Android 12 GKI 5.10 Halium image"
+  echo "  ./build-gki.sh --gki-version 5.10 --gsi-variant vanilla      # Build vanilla GKI 5.10 image"
   exit 1
 }
 
