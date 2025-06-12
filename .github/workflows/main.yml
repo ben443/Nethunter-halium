@@ -8,68 +8,73 @@ on:
         required: true
         default: 'gki-5.10'
 
+env:
+  LANG: en_US.UTF-8
+  LC_ALL: en_US.UTF-8
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout the code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Docker
+      # Set up Docker (using official Action for maintainability)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Install build dependencies (consider using a Docker image for faster builds)
+      - name: Install build dependencies
         run: |
-          sudo apt-get remove -y docker docker-engine docker.io containerd runc
           sudo apt-get update
-          sudo apt-get install -y \
-            ca-certificates \
-            curl \
-            gnupg \
-            lsb-release
+          sudo apt-get install -y git make curl wget gdisk parted \
+            adb fastboot android-sdk-libsparse-utils \
+            python3 python3-pip \
+            qemu-user-static debootstrap schroot lxc \
+            build-essential devscripts crossbuild-essential-arm64 \
+            android-sdk-platform-tools-common repo python3-pycryptodome gzip lz4 locales
+          # Install LXD from snap
+          sudo apt-get install -y snapd
+          sudo snap install lxd
+          sudo lxd init --auto
 
-          # Add Docker's official GPG key
-          sudo mkdir -p /etc/apt/keyrings
-          curl -fsSL https://download.docker.com/linux/$(. /etc/os-release; echo "$ID")/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-
-          # Set up the stable repository for Docker
-          echo \
-            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$(. /etc/os-release; echo "$ID") \
-            $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-          # Install Docker and containerd
-          sudo apt-get update
-          sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-          sudo systemctl start docker
-          sudo usermod -aG docker $USER
-
-- name: Install build dependencies
-  run: |
-    sudo apt-get update
-    sudo apt-get install -y git make curl wget gdisk parted \
-      adb fastboot android-sdk-libsparse-utils \
-      python3 python3-pip \
-      qemu-user-static debootstrap schroot lxc \
-      build-essential devscripts crossbuild-essential-arm64 \
-      android-sdk-platform-tools-common repo python3-pycryptodome gzip lz4 locales
-
-    # Install LXD from snap
-    sudo apt-get install -y snapd
-    sudo snap install lxd
-    sudo lxd init --auto
       - name: Set up locales
         run: |
           sudo locale-gen en_US.UTF-8
-          export LANG=en_US.UTF-8
 
+      # Cache Python dependencies to speed up subsequent builds
+      - name: Cache Python dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      # Make setup.sh executable and run it
       - name: Run setup.sh
         run: |
           chmod +x setup.sh
           ./setup.sh
 
+      # Make build.sh executable and run it
       - name: Build Nethunter-Halium Image
         run: |
           chmod +x build.sh
           ./build.sh ${{ github.event.inputs.build_target }}
 
+      # Validate build output before uploading
+      - name: Validate Build Output
+        run: |
+          ls -lh build/out/
+          if ! ls build/out/nethunter-halium-*.img 1> /dev/null 2>&1; then
+            echo "Build artifact not found!" >&2
+            exit 1
+          fi
+
+      # Upload the build artifact
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
