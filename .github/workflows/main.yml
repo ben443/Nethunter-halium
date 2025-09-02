@@ -36,9 +36,9 @@ jobs:
             build-essential devscripts crossbuild-essential-arm64 \
             android-sdk-platform-tools-common repo python3-pycryptodome gzip lz4 locales
           # Install LXD from snap
-          sudo apt-get install -y snapd
-          #sudo snap install lxd
-          sudo lxd init --auto
+           sudo apt-get install -y snapd
+           sudo snap install lxd
+           sudo lxd init --auto
 
       - name: Set up locales
         run: |
