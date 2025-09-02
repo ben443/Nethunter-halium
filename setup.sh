@@ -9,7 +9,7 @@ if [ -f /etc/debian_version ]; then
   sudo apt install -y git make curl wget gdisk parted \
     adb fastboot android-sdk-libsparse-utils \
     docker.io docker-compose python3 python3-pip \
-    qemu-user-static debootstrap schroot lxc lxd \
+    qemu-user-static debootstrap schroot lxc \
     build-essential devscripts crossbuild-essential-arm64 \
     android-sdk-platform-tools-common  \
     repo python3-pycryptodome gzip lz4
