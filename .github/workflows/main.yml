@@ -55,10 +55,10 @@ jobs:
             ${{ runner.os }}-pip-
 
       # Make setup.sh executable and run it
-      - name: Run setup.sh
-        run: |
-          chmod +x setup.sh
-          ./setup.sh
+     # - name: Run setup.sh
+     #   run: |
+       #   chmod +x setup.sh
+          #./setup.sh
 
       # Make build.sh executable and run it
       - name: Build Nethunter-Halium Image
