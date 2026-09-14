@@ -138,23 +138,20 @@ jobs:
             gzip lz4 locales
           sudo locale-gen en_US.UTF-8
 
-      - name: Restore pip cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
       - name: Prepare sources tree
         run: |
           mkdir -p sources
           git clone --depth=1 https://github.com/Halium/halium-boot.git sources/halium
           git clone --depth=1 https://github.com/droidian/droidian.git sources/droidian
           git clone --depth=1 https://gitlab.com/kalilinux/nethunter/build-scripts/kali-nethunter-project.git sources/nethunter
+          if [ -f sources/halium/halium-install ] && [ ! -f sources/halium/scripts/halium-install ]; then
+            mkdir -p sources/halium/scripts
+            cp sources/halium/halium-install sources/halium/scripts/halium-install
+          fi
           cp build-gsi.sh sources/halium/build-gsi.sh
           cp build-gki.sh sources/halium/build-gki.sh
           chmod +x sources/halium/build-gsi.sh sources/halium/build-gki.sh
+          [ -f sources/halium/scripts/halium-install ] && chmod +x sources/halium/scripts/halium-install || true
 
       - name: Build Nethunter-Halium image
         run: |

@@ -7,7 +7,7 @@ echo "Setting up build environment for Nethunter-Halium..."
 if [ -f /etc/debian_version ]; then
   export DEBIAN_FRONTEND=noninteractive
   sudo apt-get update
-  sudo apt-get full-upgrade -y
+  sudo apt-get upgrade -y
   sudo apt-get install -y git make curl wget gdisk parted \
     adb fastboot android-sdk-libsparse-utils \
     docker.io docker-compose python3 python3-pip \
