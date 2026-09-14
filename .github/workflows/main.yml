@@ -117,6 +117,29 @@ jobs:
           test -f "$SMOKE_DIR/build/out/nethunter-halium-generic-32.img"
           test -f "$SMOKE_DIR/build/build/rootfs/extracted/overlay.txt"
 
+          FALLBACK_DIR="/tmp/nethunter-smoke-fallback"
+          rm -rf "$FALLBACK_DIR"
+          mkdir -p "$FALLBACK_DIR/sources/halium" "$FALLBACK_DIR/sources/droidian" "$FALLBACK_DIR/sources/nethunter/nethunter-fs/opt/nethunter"
+          cp build.sh "$FALLBACK_DIR/build.sh"
+          chmod +x "$FALLBACK_DIR/build.sh"
+          cp "$SMOKE_DIR/sources/halium/build-gsi.sh" "$FALLBACK_DIR/sources/halium/build-gsi.sh"
+          cp "$SMOKE_DIR/sources/droidian/mkbootstrap" "$FALLBACK_DIR/sources/droidian/mkbootstrap"
+          chmod +x "$FALLBACK_DIR/sources/halium/build-gsi.sh" "$FALLBACK_DIR/sources/droidian/mkbootstrap"
+          cat > "$FALLBACK_DIR/sources/halium/halium-install" <<'EOF'
+          #!/bin/bash
+          out="${@: -1}"
+          mkdir -p "$(dirname "$out")"
+          touch "$out"
+          EOF
+          chmod +x "$FALLBACK_DIR/sources/halium/halium-install"
+          echo "fallback" > "$FALLBACK_DIR/sources/nethunter/nethunter-fs/opt/nethunter/tool.txt"
+
+          (
+            cd /tmp
+            "$FALLBACK_DIR/build.sh" generic-32 --skip-lxc
+          )
+          test -f "$FALLBACK_DIR/build/out/nethunter-halium-generic-32.img"
+
   build:
     if: github.event_name == 'workflow_dispatch'
     needs: validate-scripts

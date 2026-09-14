@@ -146,7 +146,7 @@ fail_if_missing_file() {
 copy_dir_contents() {
   local src="$1"
   local dest="$2"
-  if [ -d "$src" ]; then
+  if [ -d "$src" ] && [ -n "$(find "$src" -mindepth 1 -maxdepth 1 -print -quit 2>/dev/null)" ]; then
     mkdir -p "$dest"
     cp -a "$src"/. "$dest"/
   fi
