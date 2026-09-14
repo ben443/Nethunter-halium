@@ -151,6 +151,15 @@ copy_dir_contents() {
     cp -a "$src"/. "$dest"/
   fi
 }
+resolve_halium_install() {
+  if [ -f "$HALIUM_DIR/scripts/halium-install" ]; then
+    echo "$HALIUM_DIR/scripts/halium-install"
+  elif [ -f "$HALIUM_DIR/halium-install" ]; then
+    echo "$HALIUM_DIR/halium-install"
+  else
+    fail_if_missing_file "$HALIUM_DIR/scripts/halium-install"
+  fi
+}
 
 ##############################################################################
 # Banner
@@ -171,8 +180,10 @@ mkdir -p "$BUILD_DIR" "$OUT_DIR" "$CONFIG_DIR" "$ROOTFS_DIR"
 ##############################################################################
 build_halium_base() {
   echo "Building Halium base for $DEVICE..."
+  local halium_install_bin
   fail_if_missing_dir "$HALIUM_DIR"
   cd "$HALIUM_DIR"
+  halium_install_bin="$(resolve_halium_install)"
 
   if [ "$BUILD_TYPE" = "generic" ]; then
     echo "Building generic Halium base for API level $API_LEVEL"
@@ -183,8 +194,7 @@ build_halium_base() {
     fail_if_missing_file "$HALIUM_DIR/build-gki.sh"
     "$HALIUM_DIR/build-gki.sh" --gki-version "$GKI_VERSION" --android-api "$API_LEVEL" --gsi-variant halium
   else
-    fail_if_missing_file "$HALIUM_DIR/scripts/halium-install"
-    "$HALIUM_DIR/scripts/halium-install" -p halium -d "$DEVICE"
+    "$halium_install_bin" -p halium -d "$DEVICE"
   fi
 }
 
@@ -417,23 +427,24 @@ repackage_rootfs() {
 ##############################################################################
 combine_with_halium() {
   echo "Combining with Halium system image..."
+  local halium_install_bin
   mkdir -p "$OUT_DIR"
-  fail_if_missing_file "$HALIUM_DIR/scripts/halium-install"
+  halium_install_bin="$(resolve_halium_install)"
   if [ "$BUILD_TYPE" = "generic" ]; then
-    "$HALIUM_DIR/scripts/halium-install" \
+    "$halium_install_bin" \
       -p halium \
       -r "$ROOTFS_DIR/rootfs.img" \
       --generic-android-api "$API_LEVEL" \
       "$OUT_DIR/nethunter-halium-$DEVICE.img"
   elif [ "$BUILD_TYPE" = "gki" ]; then
-    "$HALIUM_DIR/scripts/halium-install" \
+    "$halium_install_bin" \
       -p halium \
       -r "$ROOTFS_DIR/rootfs.img" \
       --gki-version "$GKI_VERSION" \
       --android-api "$API_LEVEL" \
       "$OUT_DIR/nethunter-halium-$DEVICE.img"
   else
-    "$HALIUM_DIR/scripts/halium-install" \
+    "$halium_install_bin" \
       -p halium \
       -r "$ROOTFS_DIR/rootfs.img" \
       "$DEVICE" \
