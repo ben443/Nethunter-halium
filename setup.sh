@@ -7,7 +7,6 @@ echo "Setting up build environment for Nethunter-Halium..."
 if [ -f /etc/debian_version ]; then
   export DEBIAN_FRONTEND=noninteractive
   sudo apt-get update
-  sudo apt-get upgrade -y
   sudo apt-get install -y git make curl wget gdisk parted \
     adb fastboot android-sdk-libsparse-utils \
     docker.io docker-compose python3 python3-pip \
@@ -45,9 +44,9 @@ echo "You may need to log out and log back in for docker group changes to take e
 mkdir -p sources
 cd sources
 
-# Clone Halium (using the correct repository URL)
+# Clone Halium scripts
 if [ ! -d "halium" ]; then
-  git clone https://github.com/Halium/halium-boot.git halium
+  git clone https://github.com/Halium/halium-scripts.git halium
 else
   (cd halium && git pull)
 fi

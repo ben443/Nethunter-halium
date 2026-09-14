@@ -141,7 +141,7 @@ jobs:
       - name: Prepare sources tree
         run: |
           mkdir -p sources
-          git clone --depth=1 https://github.com/Halium/halium-boot.git sources/halium
+          git clone --depth=1 https://github.com/Halium/halium-scripts.git sources/halium
           git clone --depth=1 https://github.com/droidian/droidian.git sources/droidian
           git clone --depth=1 https://gitlab.com/kalilinux/nethunter/build-scripts/kali-nethunter-project.git sources/nethunter
           if [ -f sources/halium/halium-install ] && [ ! -f sources/halium/scripts/halium-install ]; then
