@@ -8,9 +8,11 @@ set -e
 ##############################################################################
 
 # --- Configuration ---
-BUILD_DIR="$(pwd)/build"
-SOURCES_DIR="$(pwd)/sources"
-OVERLAYS_DIR="$(pwd)/overlays"
+BASE_DIR="$(cd "$(dirname "$0")" && pwd)"
+BUILD_DIR="$BASE_DIR/build"
+SOURCES_DIR="$BASE_DIR/sources"
+HALIUM_DIR="$SOURCES_DIR/halium"
+OVERLAYS_DIR="$BASE_DIR/overlays"
 OUT_DIR="$BUILD_DIR/out"
 CONFIG_DIR="$BUILD_DIR/config"
 ROOTFS_DIR="$BUILD_DIR/build/rootfs"
@@ -106,6 +108,10 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --arch)
+      if [ $# -lt 2 ]; then
+        echo "Error: --arch requires a value"
+        exit 1
+      fi
       ARCH_OVERRIDE="$2"
       shift 2
       ;;
@@ -137,6 +143,23 @@ fail_if_missing_file() {
     exit 1
   fi
 }
+copy_dir_contents() {
+  local src="$1"
+  local dest="$2"
+  if [ -d "$src" ] && [ -n "$(find "$src" -mindepth 1 -maxdepth 1 -print -quit 2>/dev/null)" ]; then
+    mkdir -p "$dest"
+    cp -a "$src"/. "$dest"/
+  fi
+}
+resolve_halium_install() {
+  if [ -f "$HALIUM_DIR/scripts/halium-install" ]; then
+    echo "$HALIUM_DIR/scripts/halium-install"
+  elif [ -f "$HALIUM_DIR/halium-install" ]; then
+    echo "$HALIUM_DIR/halium-install"
+  else
+    fail_if_missing_file "$HALIUM_DIR/scripts/halium-install"
+  fi
+}
 
 ##############################################################################
 # Banner
@@ -157,20 +180,21 @@ mkdir -p "$BUILD_DIR" "$OUT_DIR" "$CONFIG_DIR" "$ROOTFS_DIR"
 ##############################################################################
 build_halium_base() {
   echo "Building Halium base for $DEVICE..."
-  fail_if_missing_dir "$SOURCES_DIR/halium"
-  cd "$SOURCES_DIR/halium"
+  local halium_install_bin
+  fail_if_missing_dir "$HALIUM_DIR"
+  cd "$HALIUM_DIR"
+  halium_install_bin="$(resolve_halium_install)"
 
   if [ "$BUILD_TYPE" = "generic" ]; then
     echo "Building generic Halium base for API level $API_LEVEL"
-    fail_if_missing_file "./build-gsi.sh"
-    ./build-gsi.sh --android-api "$API_LEVEL" --gsi-variant halium
+    fail_if_missing_file "$HALIUM_DIR/build-gsi.sh"
+    "$HALIUM_DIR/build-gsi.sh" --android-api "$API_LEVEL" --gsi-variant halium
   elif [ "$BUILD_TYPE" = "gki" ]; then
     echo "Building GKI-based Halium for kernel $GKI_VERSION (API level $API_LEVEL)"
-    fail_if_missing_file "./build-gki.sh"
-    ./build-gki.sh --gki-version "$GKI_VERSION" --android-api "$API_LEVEL" --gsi-variant halium
+    fail_if_missing_file "$HALIUM_DIR/build-gki.sh"
+    "$HALIUM_DIR/build-gki.sh" --gki-version "$GKI_VERSION" --android-api "$API_LEVEL" --gsi-variant halium
   else
-    fail_if_missing_file "./halium-install"
-    ./halium-install -p halium -d "$DEVICE"
+    "$halium_install_bin" -p halium -d "$DEVICE"
   fi
 }
 
@@ -212,21 +236,13 @@ apply_nethunter_customizations() {
   echo "Applying Nethunter customizations..."
 
   # Copy Nethunter tools and scripts
-  if [ -d "$SOURCES_DIR/nethunter/nethunter-fs/opt/nethunter" ]; then
-    mkdir -p "$ROOTFS_DIR/extracted/opt/nethunter"
-    cp -r "$SOURCES_DIR/nethunter/nethunter-fs/opt/nethunter/"* "$ROOTFS_DIR/extracted/opt/nethunter/"
-  fi
+  copy_dir_contents "$SOURCES_DIR/nethunter/nethunter-fs/opt/nethunter" "$ROOTFS_DIR/extracted/opt/nethunter"
 
   # Copy Nethunter Phosh theme
-  if [ -d "$OVERLAYS_DIR/phosh-theme" ]; then
-    mkdir -p "$ROOTFS_DIR/extracted/usr/share/themes/nethunter"
-    cp -r "$OVERLAYS_DIR/phosh-theme/"* "$ROOTFS_DIR/extracted/usr/share/themes/nethunter/"
-  fi
+  copy_dir_contents "$OVERLAYS_DIR/phosh-theme" "$ROOTFS_DIR/extracted/usr/share/themes/nethunter"
 
   # Copy Kali tools overlay
-  if [ -d "$OVERLAYS_DIR/kali-tools" ]; then
-    cp -r "$OVERLAYS_DIR/kali-tools/"* "$ROOTFS_DIR/extracted/"
-  fi
+  copy_dir_contents "$OVERLAYS_DIR/kali-tools" "$ROOTFS_DIR/extracted"
 
   # Create Nethunter configuration file
   mkdir -p "$ROOTFS_DIR/extracted/etc"
@@ -246,10 +262,9 @@ EOF
     echo "API_LEVEL=\"$API_LEVEL\"" >> "$ROOTFS_DIR/extracted/etc/nethunter.conf"
     # GKI tweaks and service
     mkdir -p "$ROOTFS_DIR/extracted/etc/phosh/gki-tweaks"
-    if [ -d "$OVERLAYS_DIR/gki-$GKI_VERSION" ]; then
-      cp -r "$OVERLAYS_DIR/gki-$GKI_VERSION/"* "$ROOTFS_DIR/extracted/"
-    fi
+    copy_dir_contents "$OVERLAYS_DIR/gki-$GKI_VERSION" "$ROOTFS_DIR/extracted"
     mkdir -p "$ROOTFS_DIR/extracted/etc/systemd/system"
+    mkdir -p "$ROOTFS_DIR/extracted/etc/systemd/system/multi-user.target.wants"
     cat > "$ROOTFS_DIR/extracted/etc/systemd/system/gki-module-loader.service" << EOFSERVICE
 [Unit]
 Description=GKI Kernel Module Loader
@@ -294,6 +309,9 @@ EOFSCRIPT
   else
     echo "DEVICE=\"$DEVICE\"" >> "$ROOTFS_DIR/extracted/etc/nethunter.conf"
   fi
+
+  # Apply device/generic specific overlay if present
+  copy_dir_contents "$OVERLAYS_DIR/devices/$DEVICE" "$ROOTFS_DIR/extracted"
 
   # LXC container setup
   if [ "$SKIP_LXC" = false ]; then
@@ -374,6 +392,7 @@ EOF
 
   # Systemd service for first-boot
   mkdir -p "$ROOTFS_DIR/extracted/etc/systemd/system"
+  mkdir -p "$ROOTFS_DIR/extracted/etc/systemd/system/multi-user.target.wants"
   cat > "$ROOTFS_DIR/extracted/etc/systemd/system/nethunter-first-boot.service" << EOF
 [Unit]
 Description=Nethunter First Boot Setup
@@ -408,23 +427,24 @@ repackage_rootfs() {
 ##############################################################################
 combine_with_halium() {
   echo "Combining with Halium system image..."
+  local halium_install_bin
   mkdir -p "$OUT_DIR"
-  fail_if_missing_file "$SOURCES_DIR/halium/scripts/halium-install"
+  halium_install_bin="$(resolve_halium_install)"
   if [ "$BUILD_TYPE" = "generic" ]; then
-    "$SOURCES_DIR/halium/scripts/halium-install" \
+    "$halium_install_bin" \
       -p halium \
       -r "$ROOTFS_DIR/rootfs.img" \
       --generic-android-api "$API_LEVEL" \
       "$OUT_DIR/nethunter-halium-$DEVICE.img"
   elif [ "$BUILD_TYPE" = "gki" ]; then
-    "$SOURCES_DIR/halium/scripts/halium-install" \
+    "$halium_install_bin" \
       -p halium \
       -r "$ROOTFS_DIR/rootfs.img" \
       --gki-version "$GKI_VERSION" \
       --android-api "$API_LEVEL" \
       "$OUT_DIR/nethunter-halium-$DEVICE.img"
   else
-    "$SOURCES_DIR/halium/scripts/halium-install" \
+    "$halium_install_bin" \
       -p halium \
       -r "$ROOTFS_DIR/rootfs.img" \
       "$DEVICE" \

@@ -5,15 +5,15 @@ echo "Setting up build environment for Nethunter-Halium..."
 
 # Install dependencies
 if [ -f /etc/debian_version ]; then
-  sudo apt update
-  sudo apt full-upgrade
-  sudo apt install -y git make curl wget gdisk parted \
+  export DEBIAN_FRONTEND=noninteractive
+  sudo apt-get update
+  sudo apt-get install -y git make curl wget gdisk parted \
     adb fastboot android-sdk-libsparse-utils \
     docker.io docker-compose python3 python3-pip \
     qemu-user-static debootstrap schroot lxc \
     build-essential devscripts crossbuild-essential-arm64 \
     android-sdk-platform-tools-common  \
-    repo python3-pycryptodome gzip lz4
+    repo python3-pycryptodome gzip lz4 cpio locales
 elif [ -f /etc/arch-release ]; then
   sudo pacman -Syu --needed git make curl wget gdisk parted \
     android-tools docker docker-compose python python-pip \
@@ -44,9 +44,9 @@ echo "You may need to log out and log back in for docker group changes to take e
 mkdir -p sources
 cd sources
 
-# Clone Halium (using the correct repository URL)
+# Clone Halium scripts
 if [ ! -d "halium" ]; then
-  git clone https://github.com/Halium/halium-boot.git halium
+  git clone https://github.com/Halium/halium-scripts.git halium
 else
   (cd halium && git pull)
 fi
@@ -57,6 +57,16 @@ if [ ! -d "halium/gsi-tools" ]; then
   git clone https://github.com/phhusson/treble_experimentations.git halium/gsi-tools/treble_exp
   cp halium/gsi-tools/treble_exp/build-gsi.sh halium/build-gsi.sh
   chmod +x halium/build-gsi.sh
+fi
+
+# Ensure local helper build scripts are available in Halium sources
+if [ -f ../build-gsi.sh ] && [ ! -f halium/build-gsi.sh ]; then
+  cp ../build-gsi.sh halium/build-gsi.sh
+  chmod +x halium/build-gsi.sh
+fi
+if [ -f ../build-gki.sh ] && [ ! -f halium/build-gki.sh ]; then
+  cp ../build-gki.sh halium/build-gki.sh
+  chmod +x halium/build-gki.sh
 fi
 
 # Clone Droidian
