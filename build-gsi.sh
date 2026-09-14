@@ -188,31 +188,32 @@ build_gsi() {
   
   # Determine the build parameters based on API level and variant
   TREBLE_TARGET=""
+  EXTRA_ARGS=()
   
   if [ "$ANDROID_API" = "30" ]; then
     # Android 11
     if [ "$GSI_VARIANT" = "halium" ]; then
       TREBLE_TARGET="treble_arm64_bvN-userdebug"
-      EXTRA_ARGS="WITH_HALIUM=true"
+      EXTRA_ARGS=("WITH_HALIUM=true")
     elif [ "$GSI_VARIANT" = "vanilla" ]; then
       TREBLE_TARGET="treble_arm64_bvN-userdebug"
     elif [ "$GSI_VARIANT" = "gapps" ]; then
       TREBLE_TARGET="treble_arm64_bgN-userdebug"
       if [ "$WITH_GMS" = true ]; then
-        EXTRA_ARGS="WITH_GMS=true"
+        EXTRA_ARGS=("WITH_GMS=true")
       fi
     fi
   elif [ "$ANDROID_API" = "32" ]; then
     # Android 12
     if [ "$GSI_VARIANT" = "halium" ]; then
       TREBLE_TARGET="treble_arm64_bvS-userdebug"
-      EXTRA_ARGS="WITH_HALIUM=true"
+      EXTRA_ARGS=("WITH_HALIUM=true")
     elif [ "$GSI_VARIANT" = "vanilla" ]; then
       TREBLE_TARGET="treble_arm64_bvS-userdebug"
     elif [ "$GSI_VARIANT" = "gapps" ]; then
       TREBLE_TARGET="treble_arm64_bgS-userdebug"
       if [ "$WITH_GMS" = true ]; then
-        EXTRA_ARGS="WITH_GMS=true"
+        EXTRA_ARGS=("WITH_GMS=true")
       fi
     fi
   fi
@@ -223,8 +224,8 @@ build_gsi() {
   fi
   
   # Execute build
-  echo "Building with target: $TREBLE_TARGET $EXTRA_ARGS"
-  bash "$TREBLE_DIR/build.sh" "$TREBLE_TARGET" $EXTRA_ARGS
+  echo "Building with target: $TREBLE_TARGET ${EXTRA_ARGS[*]}"
+  bash "$TREBLE_DIR/build.sh" "$TREBLE_TARGET" "${EXTRA_ARGS[@]}"
   
   # Check if build was successful
   if [ $? -ne 0 ]; then
