@@ -60,11 +60,11 @@ if [ ! -d "halium/gsi-tools" ]; then
 fi
 
 # Ensure local helper build scripts are available in Halium sources
-if [ -f ../build-gsi.sh ]; then
+if [ -f ../build-gsi.sh ] && [ ! -f halium/build-gsi.sh ]; then
   cp ../build-gsi.sh halium/build-gsi.sh
   chmod +x halium/build-gsi.sh
 fi
-if [ -f ../build-gki.sh ]; then
+if [ -f ../build-gki.sh ] && [ ! -f halium/build-gki.sh ]; then
   cp ../build-gki.sh halium/build-gki.sh
   chmod +x halium/build-gki.sh
 fi
