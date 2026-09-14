@@ -143,8 +143,8 @@ fail_if_missing_file() {
   fi
 }
 copy_dir_contents() {
-  src="$1"
-  dest="$2"
+  local src="$1"
+  local dest="$2"
   if [ -d "$src" ]; then
     mkdir -p "$dest"
     cp -a "$src"/. "$dest"/
