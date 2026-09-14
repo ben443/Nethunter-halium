@@ -32,6 +32,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install smoke-test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cpio
+
       - name: Validate shell script syntax
         run: |
           set -e
@@ -54,6 +59,63 @@ jobs:
             exit 1
           fi
           grep -q -- "--arch requires a value" /tmp/build-arch.log
+
+      - name: Smoke test build flow with stubs
+        run: |
+          set -e
+          SMOKE_DIR="/tmp/nethunter-smoke"
+          rm -rf "$SMOKE_DIR"
+          mkdir -p "$SMOKE_DIR"
+          cp build.sh "$SMOKE_DIR/build.sh"
+          chmod +x "$SMOKE_DIR/build.sh"
+
+          cat > "$SMOKE_DIR/build-gsi.sh" <<'EOF'
+          #!/bin/bash
+          exit 0
+          EOF
+          chmod +x "$SMOKE_DIR/build-gsi.sh"
+
+          mkdir -p "$SMOKE_DIR/sources/halium/scripts"
+          cat > "$SMOKE_DIR/sources/halium/scripts/halium-install" <<'EOF'
+          #!/bin/bash
+          out="${@: -1}"
+          mkdir -p "$(dirname "$out")"
+          touch "$out"
+          EOF
+          chmod +x "$SMOKE_DIR/sources/halium/scripts/halium-install"
+
+          mkdir -p "$SMOKE_DIR/sources/droidian"
+          cat > "$SMOKE_DIR/sources/droidian/mkbootstrap" <<'EOF'
+          #!/bin/bash
+          output=""
+          while [ $# -gt 0 ]; do
+            if [ "$1" = "--output" ]; then
+              output="$2"
+              shift 2
+            else
+              shift
+            fi
+          done
+          [ -n "$output" ] || exit 1
+          tmpdir="$(mktemp -d)"
+          mkdir -p "$tmpdir/etc" "$tmpdir/usr/local/bin"
+          tar -czf "$output" -C "$tmpdir" .
+          rm -rf "$tmpdir"
+          EOF
+          chmod +x "$SMOKE_DIR/sources/droidian/mkbootstrap"
+
+          mkdir -p "$SMOKE_DIR/sources/nethunter/nethunter-fs/opt/nethunter"
+          echo "tool" > "$SMOKE_DIR/sources/nethunter/nethunter-fs/opt/nethunter/tool.txt"
+          mkdir -p "$SMOKE_DIR/overlays/devices/generic-32"
+          echo "device-overlay" > "$SMOKE_DIR/overlays/devices/generic-32/overlay.txt"
+
+          (
+            cd "$SMOKE_DIR"
+            ./build.sh generic-32 --skip-lxc
+          )
+
+          test -f "$SMOKE_DIR/build/out/nethunter-halium-generic-32.img"
+          test -f "$SMOKE_DIR/build/build/rootfs/extracted/overlay.txt"
 
   build:
     if: github.event_name == 'workflow_dispatch'
