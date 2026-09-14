@@ -140,6 +140,50 @@ jobs:
           )
           test -f "$FALLBACK_DIR/build/out/nethunter-halium-generic-32.img"
 
+      - name: Smoke test GSI builder with non-executable treble script
+        run: |
+          set -e
+          GSI_SMOKE_DIR="/tmp/nethunter-gsi-smoke"
+          rm -rf "$GSI_SMOKE_DIR"
+          mkdir -p "$GSI_SMOKE_DIR/bin" "$GSI_SMOKE_DIR/gsi-tools/treble_exp"
+          cp build-gsi.sh "$GSI_SMOKE_DIR/build-gsi.sh"
+          chmod +x "$GSI_SMOKE_DIR/build-gsi.sh"
+
+          cat > "$GSI_SMOKE_DIR/bin/repo" <<'EOF'
+          #!/bin/bash
+          exit 0
+          EOF
+          chmod +x "$GSI_SMOKE_DIR/bin/repo"
+
+          cat > "$GSI_SMOKE_DIR/bin/git" <<'EOF'
+          #!/bin/bash
+          if [ "$1" = "pull" ]; then
+            exit 0
+          fi
+          exec /usr/bin/git "$@"
+          EOF
+          chmod +x "$GSI_SMOKE_DIR/bin/git"
+
+          cat > "$GSI_SMOKE_DIR/gsi-tools/treble_exp/build.sh" <<'EOF'
+          #!/bin/bash
+          set -e
+          if [ "$1" = "--setup-only" ]; then
+            exit 0
+          fi
+          mkdir -p out/target/product
+          touch out/target/product/system-test.img
+          EOF
+          chmod 0644 "$GSI_SMOKE_DIR/gsi-tools/treble_exp/build.sh"
+
+          (
+            cd /tmp
+            export PATH="$GSI_SMOKE_DIR/bin:$PATH"
+            "$GSI_SMOKE_DIR/build-gsi.sh" --android-api 32 --gsi-variant halium
+          )
+
+          test -f "$GSI_SMOKE_DIR/build/out/nethunter-halium-generic-32-arm64.img"
+          test -f "$GSI_SMOKE_DIR/build/out/nethunter-halium-generic-32-arm64.info"
+
   build:
     if: github.event_name == 'workflow_dispatch'
     needs: validate-scripts

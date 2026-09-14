@@ -175,7 +175,7 @@ prepare_env() {
   # Prepare treble build environment
   if [ ! -f ".treble_env_setup" ]; then
     echo "Setting up treble build environment..."
-    "$TREBLE_DIR/build.sh" --setup-only
+    bash "$TREBLE_DIR/build.sh" --setup-only
     touch ".treble_env_setup"
   fi
 }
@@ -224,7 +224,7 @@ build_gsi() {
   
   # Execute build
   echo "Building with target: $TREBLE_TARGET $EXTRA_ARGS"
-  "$TREBLE_DIR/build.sh" "$TREBLE_TARGET" $EXTRA_ARGS
+  bash "$TREBLE_DIR/build.sh" "$TREBLE_TARGET" $EXTRA_ARGS
   
   # Check if build was successful
   if [ $? -ne 0 ]; then
