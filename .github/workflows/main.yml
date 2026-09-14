@@ -35,7 +35,7 @@ jobs:
       - name: Install smoke-test dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cpio
+          sudo apt-get install -y cpio tar gzip
 
       - name: Validate shell script syntax
         run: |
@@ -144,6 +144,8 @@ jobs:
           git clone --depth=1 https://github.com/Halium/halium-scripts.git sources/halium
           git clone --depth=1 https://github.com/droidian/droidian.git sources/droidian
           git clone --depth=1 https://gitlab.com/kalilinux/nethunter/build-scripts/kali-nethunter-project.git sources/nethunter
+          test -f build-gsi.sh
+          test -f build-gki.sh
           if [ -f sources/halium/halium-install ] && [ ! -f sources/halium/scripts/halium-install ]; then
             mkdir -p sources/halium/scripts
             cp sources/halium/halium-install sources/halium/scripts/halium-install

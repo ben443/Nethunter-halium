@@ -59,6 +59,16 @@ if [ ! -d "halium/gsi-tools" ]; then
   chmod +x halium/build-gsi.sh
 fi
 
+# Ensure local helper build scripts are available in Halium sources
+if [ -f ../build-gsi.sh ]; then
+  cp ../build-gsi.sh halium/build-gsi.sh
+  chmod +x halium/build-gsi.sh
+fi
+if [ -f ../build-gki.sh ]; then
+  cp ../build-gki.sh halium/build-gki.sh
+  chmod +x halium/build-gki.sh
+fi
+
 # Clone Droidian
 if [ ! -d "droidian" ]; then
   git clone https://github.com/droidian/droidian
