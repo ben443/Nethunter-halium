@@ -5,15 +5,16 @@ echo "Setting up build environment for Nethunter-Halium..."
 
 # Install dependencies
 if [ -f /etc/debian_version ]; then
-  sudo apt update
-  sudo apt full-upgrade
-  sudo apt install -y git make curl wget gdisk parted \
+  export DEBIAN_FRONTEND=noninteractive
+  sudo apt-get update
+  sudo apt-get full-upgrade -y
+  sudo apt-get install -y git make curl wget gdisk parted \
     adb fastboot android-sdk-libsparse-utils \
     docker.io docker-compose python3 python3-pip \
     qemu-user-static debootstrap schroot lxc \
     build-essential devscripts crossbuild-essential-arm64 \
     android-sdk-platform-tools-common  \
-    repo python3-pycryptodome gzip lz4
+    repo python3-pycryptodome gzip lz4 cpio locales
 elif [ -f /etc/arch-release ]; then
   sudo pacman -Syu --needed git make curl wget gdisk parted \
     android-tools docker docker-compose python python-pip \

@@ -8,9 +8,10 @@ set -e
 ##############################################################################
 
 # --- Configuration ---
-BUILD_DIR="$(pwd)/build"
-SOURCES_DIR="$(pwd)/sources"
-OVERLAYS_DIR="$(pwd)/overlays"
+BASE_DIR="$(cd "$(dirname "$0")" && pwd)"
+BUILD_DIR="$BASE_DIR/build"
+SOURCES_DIR="$BASE_DIR/sources"
+OVERLAYS_DIR="$BASE_DIR/overlays"
 OUT_DIR="$BUILD_DIR/out"
 CONFIG_DIR="$BUILD_DIR/config"
 ROOTFS_DIR="$BUILD_DIR/build/rootfs"
@@ -106,6 +107,10 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --arch)
+      if [ $# -lt 2 ]; then
+        echo "Error: --arch requires a value"
+        exit 1
+      fi
       ARCH_OVERRIDE="$2"
       shift 2
       ;;
@@ -137,6 +142,14 @@ fail_if_missing_file() {
     exit 1
   fi
 }
+copy_dir_contents() {
+  src="$1"
+  dest="$2"
+  if [ -d "$src" ]; then
+    mkdir -p "$dest"
+    cp -a "$src"/. "$dest"/
+  fi
+}
 
 ##############################################################################
 # Banner
@@ -162,12 +175,22 @@ build_halium_base() {
 
   if [ "$BUILD_TYPE" = "generic" ]; then
     echo "Building generic Halium base for API level $API_LEVEL"
-    fail_if_missing_file "./build-gsi.sh"
-    ./build-gsi.sh --android-api "$API_LEVEL" --gsi-variant halium
+    if [ -f "./build-gsi.sh" ]; then
+      ./build-gsi.sh --android-api "$API_LEVEL" --gsi-variant halium
+    elif [ -f "$BASE_DIR/build-gsi.sh" ]; then
+      "$BASE_DIR/build-gsi.sh" --android-api "$API_LEVEL" --gsi-variant halium
+    else
+      fail_if_missing_file "./build-gsi.sh"
+    fi
   elif [ "$BUILD_TYPE" = "gki" ]; then
     echo "Building GKI-based Halium for kernel $GKI_VERSION (API level $API_LEVEL)"
-    fail_if_missing_file "./build-gki.sh"
-    ./build-gki.sh --gki-version "$GKI_VERSION" --android-api "$API_LEVEL" --gsi-variant halium
+    if [ -f "./build-gki.sh" ]; then
+      ./build-gki.sh --gki-version "$GKI_VERSION" --android-api "$API_LEVEL" --gsi-variant halium
+    elif [ -f "$BASE_DIR/build-gki.sh" ]; then
+      "$BASE_DIR/build-gki.sh" --gki-version "$GKI_VERSION" --android-api "$API_LEVEL" --gsi-variant halium
+    else
+      fail_if_missing_file "./build-gki.sh"
+    fi
   else
     fail_if_missing_file "./halium-install"
     ./halium-install -p halium -d "$DEVICE"
@@ -212,21 +235,13 @@ apply_nethunter_customizations() {
   echo "Applying Nethunter customizations..."
 
   # Copy Nethunter tools and scripts
-  if [ -d "$SOURCES_DIR/nethunter/nethunter-fs/opt/nethunter" ]; then
-    mkdir -p "$ROOTFS_DIR/extracted/opt/nethunter"
-    cp -r "$SOURCES_DIR/nethunter/nethunter-fs/opt/nethunter/"* "$ROOTFS_DIR/extracted/opt/nethunter/"
-  fi
+  copy_dir_contents "$SOURCES_DIR/nethunter/nethunter-fs/opt/nethunter" "$ROOTFS_DIR/extracted/opt/nethunter"
 
   # Copy Nethunter Phosh theme
-  if [ -d "$OVERLAYS_DIR/phosh-theme" ]; then
-    mkdir -p "$ROOTFS_DIR/extracted/usr/share/themes/nethunter"
-    cp -r "$OVERLAYS_DIR/phosh-theme/"* "$ROOTFS_DIR/extracted/usr/share/themes/nethunter/"
-  fi
+  copy_dir_contents "$OVERLAYS_DIR/phosh-theme" "$ROOTFS_DIR/extracted/usr/share/themes/nethunter"
 
   # Copy Kali tools overlay
-  if [ -d "$OVERLAYS_DIR/kali-tools" ]; then
-    cp -r "$OVERLAYS_DIR/kali-tools/"* "$ROOTFS_DIR/extracted/"
-  fi
+  copy_dir_contents "$OVERLAYS_DIR/kali-tools" "$ROOTFS_DIR/extracted"
 
   # Create Nethunter configuration file
   mkdir -p "$ROOTFS_DIR/extracted/etc"
@@ -246,10 +261,9 @@ EOF
     echo "API_LEVEL=\"$API_LEVEL\"" >> "$ROOTFS_DIR/extracted/etc/nethunter.conf"
     # GKI tweaks and service
     mkdir -p "$ROOTFS_DIR/extracted/etc/phosh/gki-tweaks"
-    if [ -d "$OVERLAYS_DIR/gki-$GKI_VERSION" ]; then
-      cp -r "$OVERLAYS_DIR/gki-$GKI_VERSION/"* "$ROOTFS_DIR/extracted/"
-    fi
+    copy_dir_contents "$OVERLAYS_DIR/gki-$GKI_VERSION" "$ROOTFS_DIR/extracted"
     mkdir -p "$ROOTFS_DIR/extracted/etc/systemd/system"
+    mkdir -p "$ROOTFS_DIR/extracted/etc/systemd/system/multi-user.target.wants"
     cat > "$ROOTFS_DIR/extracted/etc/systemd/system/gki-module-loader.service" << EOFSERVICE
 [Unit]
 Description=GKI Kernel Module Loader
@@ -294,6 +308,9 @@ EOFSCRIPT
   else
     echo "DEVICE=\"$DEVICE\"" >> "$ROOTFS_DIR/extracted/etc/nethunter.conf"
   fi
+
+  # Apply device/generic specific overlay if present
+  copy_dir_contents "$OVERLAYS_DIR/devices/$DEVICE" "$ROOTFS_DIR/extracted"
 
   # LXC container setup
   if [ "$SKIP_LXC" = false ]; then
@@ -374,6 +391,7 @@ EOF
 
   # Systemd service for first-boot
   mkdir -p "$ROOTFS_DIR/extracted/etc/systemd/system"
+  mkdir -p "$ROOTFS_DIR/extracted/etc/systemd/system/multi-user.target.wants"
   cat > "$ROOTFS_DIR/extracted/etc/systemd/system/nethunter-first-boot.service" << EOF
 [Unit]
 Description=Nethunter First Boot Setup

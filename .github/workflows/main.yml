@@ -1,82 +1,94 @@
-name: Build GKI & Generic 32 Images
+name: Build Nethunter Halium
 
 on:
   workflow_dispatch:
     inputs:
       build_target:
-        description: 'Build target: gki-5.10 or generic-32'
+        description: "Build target: generic-30, generic-32 or gki-5.10"
         required: true
-        default: 'gki-5.10'
+        default: "generic-32"
+        type: choice
+        options:
+          - generic-30
+          - generic-32
+          - gki-5.10
+  pull_request:
+    paths:
+      - "*.sh"
+      - ".github/workflows/main.yml"
 
 env:
   LANG: en_US.UTF-8
   LC_ALL: en_US.UTF-8
+  DEBIAN_FRONTEND: noninteractive
 
 jobs:
-  build:
+  validate-scripts:
     runs-on: ubuntu-latest
-
     steps:
-      # Checkout the code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Set up Docker (using official Action for maintainability)
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Validate shell script syntax
+        run: |
+          set -e
+          for file in ./*.sh; do
+            bash -n "$file"
+          done
 
-      # Install build dependencies (consider using a Docker image for faster builds)
+  build:
+    if: github.event_name == 'workflow_dispatch'
+    needs: validate-scripts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt full-upgrade
-          sudo apt-get install -y git make curl wget gdisk parted \
+          sudo apt-get install -y \
+            git make curl wget gdisk parted cpio \
             adb fastboot android-sdk-libsparse-utils \
-            python3 python3-pip \
-            qemu-user-static debootstrap schroot \
+            docker.io docker-compose python3 python3-pip \
+            qemu-user-static debootstrap schroot lxc \
             build-essential devscripts crossbuild-essential-arm64 \
-            android-sdk-platform-tools-common repo python3-pycryptodome gzip lz4 locales
-          # Install LXD from snap
-           sudo apt-get install -y snapd
-           sudo snap install lxd
-           sudo lxd init --auto
-
-      - name: Set up locales
-        run: |
+            android-sdk-platform-tools-common repo python3-pycryptodome \
+            gzip lz4 locales
           sudo locale-gen en_US.UTF-8
 
-      # Cache Python dependencies to speed up subsequent builds
-      - name: Cache Python dependencies
-        uses: actions/cache@v3
+      - name: Restore pip cache
+        uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      # Make setup.sh executable and run it
-     # - name: Run setup.sh
-     #   run: |
-       #   chmod +x setup.sh
-          #./setup.sh
+      - name: Prepare sources tree
+        run: |
+          mkdir -p sources
+          git clone --depth=1 https://github.com/Halium/halium-boot.git sources/halium
+          git clone --depth=1 https://github.com/droidian/droidian.git sources/droidian
+          git clone --depth=1 https://gitlab.com/kalilinux/nethunter/build-scripts/kali-nethunter-project.git sources/nethunter
+          cp build-gsi.sh sources/halium/build-gsi.sh
+          cp build-gki.sh sources/halium/build-gki.sh
+          chmod +x sources/halium/build-gsi.sh sources/halium/build-gki.sh
 
-      # Make build.sh executable and run it
-      - name: Build Nethunter-Halium Image
+      - name: Build Nethunter-Halium image
         run: |
           chmod +x build.sh
-          ./build.sh ${{ github.event.inputs.build_target }}
+          ./build.sh "${{ github.event.inputs.build_target }}"
 
-      # Validate build output before uploading
-      - name: Validate Build Output
+      - name: Validate build output
         run: |
           ls -lh build/out/
-          if ! ls build/out/nethunter-halium-*.img 1> /dev/null 2>&1; then
+          if ! ls build/out/nethunter-halium-*.img 1>/dev/null 2>&1; then
             echo "Build artifact not found!" >&2
             exit 1
           fi
 
-      # Upload the build artifact
-      - name: Upload Build Artifact
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: nethunter-halium-${{ github.event.inputs.build_target }}
