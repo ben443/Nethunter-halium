@@ -11,6 +11,7 @@ set -e
 BASE_DIR="$(cd "$(dirname "$0")" && pwd)"
 BUILD_DIR="$BASE_DIR/build"
 SOURCES_DIR="$BASE_DIR/sources"
+HALIUM_DIR="$SOURCES_DIR/halium"
 OVERLAYS_DIR="$BASE_DIR/overlays"
 OUT_DIR="$BUILD_DIR/out"
 CONFIG_DIR="$BUILD_DIR/config"
@@ -170,30 +171,20 @@ mkdir -p "$BUILD_DIR" "$OUT_DIR" "$CONFIG_DIR" "$ROOTFS_DIR"
 ##############################################################################
 build_halium_base() {
   echo "Building Halium base for $DEVICE..."
-  fail_if_missing_dir "$SOURCES_DIR/halium"
-  cd "$SOURCES_DIR/halium"
+  fail_if_missing_dir "$HALIUM_DIR"
+  cd "$HALIUM_DIR"
 
   if [ "$BUILD_TYPE" = "generic" ]; then
     echo "Building generic Halium base for API level $API_LEVEL"
-    if [ -f "./build-gsi.sh" ]; then
-      ./build-gsi.sh --android-api "$API_LEVEL" --gsi-variant halium
-    elif [ -f "$BASE_DIR/build-gsi.sh" ]; then
-      "$BASE_DIR/build-gsi.sh" --android-api "$API_LEVEL" --gsi-variant halium
-    else
-      fail_if_missing_file "./build-gsi.sh"
-    fi
+    fail_if_missing_file "$HALIUM_DIR/build-gsi.sh"
+    "$HALIUM_DIR/build-gsi.sh" --android-api "$API_LEVEL" --gsi-variant halium
   elif [ "$BUILD_TYPE" = "gki" ]; then
     echo "Building GKI-based Halium for kernel $GKI_VERSION (API level $API_LEVEL)"
-    if [ -f "./build-gki.sh" ]; then
-      ./build-gki.sh --gki-version "$GKI_VERSION" --android-api "$API_LEVEL" --gsi-variant halium
-    elif [ -f "$BASE_DIR/build-gki.sh" ]; then
-      "$BASE_DIR/build-gki.sh" --gki-version "$GKI_VERSION" --android-api "$API_LEVEL" --gsi-variant halium
-    else
-      fail_if_missing_file "./build-gki.sh"
-    fi
+    fail_if_missing_file "$HALIUM_DIR/build-gki.sh"
+    "$HALIUM_DIR/build-gki.sh" --gki-version "$GKI_VERSION" --android-api "$API_LEVEL" --gsi-variant halium
   else
-    fail_if_missing_file "./scripts/halium-install"
-    ./scripts/halium-install -p halium -d "$DEVICE"
+    fail_if_missing_file "$HALIUM_DIR/scripts/halium-install"
+    "$HALIUM_DIR/scripts/halium-install" -p halium -d "$DEVICE"
   fi
 }
 
@@ -427,22 +418,22 @@ repackage_rootfs() {
 combine_with_halium() {
   echo "Combining with Halium system image..."
   mkdir -p "$OUT_DIR"
-  fail_if_missing_file "$SOURCES_DIR/halium/scripts/halium-install"
+  fail_if_missing_file "$HALIUM_DIR/scripts/halium-install"
   if [ "$BUILD_TYPE" = "generic" ]; then
-    "$SOURCES_DIR/halium/scripts/halium-install" \
+    "$HALIUM_DIR/scripts/halium-install" \
       -p halium \
       -r "$ROOTFS_DIR/rootfs.img" \
       --generic-android-api "$API_LEVEL" \
       "$OUT_DIR/nethunter-halium-$DEVICE.img"
   elif [ "$BUILD_TYPE" = "gki" ]; then
-    "$SOURCES_DIR/halium/scripts/halium-install" \
+    "$HALIUM_DIR/scripts/halium-install" \
       -p halium \
       -r "$ROOTFS_DIR/rootfs.img" \
       --gki-version "$GKI_VERSION" \
       --android-api "$API_LEVEL" \
       "$OUT_DIR/nethunter-halium-$DEVICE.img"
   else
-    "$SOURCES_DIR/halium/scripts/halium-install" \
+    "$HALIUM_DIR/scripts/halium-install" \
       -p halium \
       -r "$ROOTFS_DIR/rootfs.img" \
       "$DEVICE" \

@@ -69,13 +69,13 @@ jobs:
           cp build.sh "$SMOKE_DIR/build.sh"
           chmod +x "$SMOKE_DIR/build.sh"
 
-          cat > "$SMOKE_DIR/build-gsi.sh" <<'EOF'
+          mkdir -p "$SMOKE_DIR/sources/halium/scripts"
+          cat > "$SMOKE_DIR/sources/halium/build-gsi.sh" <<'EOF'
           #!/bin/bash
           exit 0
           EOF
-          chmod +x "$SMOKE_DIR/build-gsi.sh"
+          chmod +x "$SMOKE_DIR/sources/halium/build-gsi.sh"
 
-          mkdir -p "$SMOKE_DIR/sources/halium/scripts"
           cat > "$SMOKE_DIR/sources/halium/scripts/halium-install" <<'EOF'
           #!/bin/bash
           out="${@: -1}"
