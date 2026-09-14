@@ -192,8 +192,8 @@ build_halium_base() {
       fail_if_missing_file "./build-gki.sh"
     fi
   else
-    fail_if_missing_file "./halium-install"
-    ./halium-install -p halium -d "$DEVICE"
+    fail_if_missing_file "./scripts/halium-install"
+    ./scripts/halium-install -p halium -d "$DEVICE"
   fi
 }
 
