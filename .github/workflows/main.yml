@@ -110,8 +110,8 @@ jobs:
           echo "device-overlay" > "$SMOKE_DIR/overlays/devices/generic-32/overlay.txt"
 
           (
-            cd "$SMOKE_DIR"
-            ./build.sh generic-32 --skip-lxc
+            cd /tmp
+            "$SMOKE_DIR/build.sh" generic-32 --skip-lxc
           )
 
           test -f "$SMOKE_DIR/build/out/nethunter-halium-generic-32.img"
